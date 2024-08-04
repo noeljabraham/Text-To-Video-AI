@@ -11,6 +11,10 @@ from utility.video.background_video_generator import generate_video_url
 from utility.render.render_engine import get_output_media
 from utility.video.video_search_query_generator import getVideoSearchQueriesTimed, merge_empty_intervals
 import argparse
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a video from a topic.")
@@ -21,28 +25,34 @@ if __name__ == "__main__":
     SAMPLE_FILE_NAME = "audio_tts.wav"
     VIDEO_SERVER = "pexel"
 
-    response = generate_script(SAMPLE_TOPIC)
-    print("script: {}".format(response))
+    try:
+        response = generate_script(SAMPLE_TOPIC)
+        logging.info("Script generated: %s", response)
 
-    asyncio.run(generate_audio(response, SAMPLE_FILE_NAME))
+        asyncio.run(generate_audio(response, SAMPLE_FILE_NAME))
+        logging.info("Audio generated: %s", SAMPLE_FILE_NAME)
 
-    timed_captions = generate_timed_captions(SAMPLE_FILE_NAME)
-    print(timed_captions)
+        timed_captions = generate_timed_captions(SAMPLE_FILE_NAME)
+        logging.info("Timed captions generated: %s", timed_captions)
 
-    search_terms = getVideoSearchQueriesTimed(response, timed_captions)
-    print(search_terms)
+        search_terms = getVideoSearchQueriesTimed(response, timed_captions)
+        logging.info("Search terms generated: %s", search_terms)
 
-    background_video_urls = None
-    if search_terms is not None:
-        background_video_urls = generate_video_url(search_terms, VIDEO_SERVER)
-        print(background_video_urls)
-    else:
-        print("No background video")
+        if search_terms:
+            background_video_urls = generate_video_url(search_terms, VIDEO_SERVER)
+            logging.info("Background video URLs: %s", background_video_urls)
+        else:
+            background_video_urls = []
+            logging.warning("No background video search terms found")
 
-    background_video_urls = merge_empty_intervals(background_video_urls)
+        background_video_urls = merge_empty_intervals(background_video_urls)
+        logging.info("Processed background video URLs: %s", background_video_urls)
 
-    if background_video_urls is not None:
-        video = get_output_media(SAMPLE_FILE_NAME, timed_captions, background_video_urls, VIDEO_SERVER)
-        print(video)
-    else:
-        print("No video")
+        if background_video_urls:
+            video = get_output_media(SAMPLE_FILE_NAME, timed_captions, background_video_urls, VIDEO_SERVER)
+            logging.info("Video generated: %s", video)
+        else:
+            logging.warning("No video generated")
+
+    except Exception as e:
+        logging.error("An error occurred: %s", e)
